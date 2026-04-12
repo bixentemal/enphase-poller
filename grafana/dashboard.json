@@ -9,107 +9,712 @@
       "pluginName": "PostgreSQL"
     }
   ],
+  "id": null,
   "annotations": {
     "list": [
       {
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${DS_POSTGRESQL}"
+        },
+        "enable": true,
+        "iconColor": "red",
         "name": "Poller Events",
-        "rawQuery": "SELECT ts AS time, event_type || ': ' || COALESCE(details, '') AS text FROM poller_events WHERE $__timeFilter(ts) ORDER BY ts",
-        "iconColor": "red"
+        "rawQuery": "SELECT ts AS time, event_type || COALESCE(' [' || endpoint || ']', '') AS title, COALESCE(details, '') AS text FROM poller_events WHERE $__timeFilter(ts) ORDER BY ts",
+        "type": "dashboard"
       }
     ]
   },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
   "panels": [
     {
-      "title": "Production vs Consumption",
-      "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Production (W)\" FROM production_overview WHERE source_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
-          "format": "time_series"
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS value\nFROM production_overview\nWHERE source_type = 'production'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Solar Now",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS value\nFROM production_overview\nWHERE source_type = 'total-consumption'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "House Load Now",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": { "from": 0.000001, "result": { "text": "Import" }, "to": 1000000 },
+              "type": "range"
+            },
+            {
+              "options": { "from": -1000000, "result": { "text": "Export" }, "to": -0.000001 },
+              "type": "range"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS value\nFROM production_overview\nWHERE source_type = 'net-consumption'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Grid Now",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, active_count AS value\nFROM production_overview\nWHERE source_type = 'inverters'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Inverters",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 4 },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH latest AS (\n  SELECT source_type, w_now, ROW_NUMBER() OVER (PARTITION BY source_type ORDER BY source_reading_time DESC) AS rn\n  FROM production_overview\n  WHERE source_type IN ('production', 'total-consumption')\n)\nSELECT NOW() AS time,\n       CASE\n         WHEN MAX(CASE WHEN source_type = 'production' AND rn = 1 THEN w_now END) > 0\n           THEN LEAST(\n             MAX(CASE WHEN source_type = 'production' AND rn = 1 THEN w_now END),\n             MAX(CASE WHEN source_type = 'total-consumption' AND rn = 1 THEN w_now END)\n           ) / MAX(CASE WHEN source_type = 'production' AND rn = 1 THEN w_now END) * 100\n         ELSE NULL\n       END AS value\nFROM latest",
+          "refId": "A"
+        }
+      ],
+      "title": "Solar Used On Site Now",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "kwh"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 4 },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, wh_today / 1000.0 AS value\nFROM production_overview\nWHERE source_type = 'production'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Production Today",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 4 },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT NOW() AS time, COUNT(*) AS value\nFROM poller_events\nWHERE event_type IN ('error', 'gap_start', 'gap_end')\n  AND ts >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Operational Events Last 24h",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 8 },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "max", "mean"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Solar Production\"\nFROM production_overview\nWHERE source_type = 'production'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "A"
         },
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Consumption (W)\" FROM production_overview WHERE source_type = 'total-consumption' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
-          "format": "time_series"
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"House Load\"\nFROM production_overview\nWHERE source_type = 'total-consumption'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Grid Import/Export\"\nFROM production_overview\nWHERE source_type = 'net-consumption'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "C"
         }
-      ]
+      ],
+      "title": "Power Balance",
+      "type": "timeseries"
     },
     {
-      "title": "Net Grid (negative = exporting)",
-      "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "unit": "kwh"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Net (W)\" FROM production_overview WHERE source_type = 'net-consumption' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
-          "format": "time_series"
+          "format": "time_series",
+          "rawSql": "WITH production_daily AS (\n  SELECT date_trunc('day', source_reading_time) AS time,\n         MAX(wh_lifetime) - MIN(wh_lifetime) AS value\n  FROM production_overview\n  WHERE source_type = 'production'\n    AND $__timeFilter(source_reading_time)\n  GROUP BY 1\n)\nSELECT time, value / 1000.0 AS \"Production\"\nFROM production_daily\nORDER BY time",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH consumption_daily AS (\n  SELECT date_trunc('day', source_reading_time) AS time,\n         MAX(wh_lifetime) - MIN(wh_lifetime) AS value\n  FROM production_overview\n  WHERE source_type = 'total-consumption'\n    AND $__timeFilter(source_reading_time)\n  GROUP BY 1\n)\nSELECT time, value / 1000.0 AS \"Consumption\"\nFROM consumption_daily\nORDER BY time",
+          "refId": "B"
         }
-      ]
+      ],
+      "title": "Daily Energy",
+      "type": "timeseries"
     },
     {
-      "title": "Voltage",
-      "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 17 },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT source_reading_time AS time, voltage AS \"Voltage (V)\" FROM meter_readings WHERE meter_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
-          "format": "time_series"
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, voltage AS \"Voltage (V)\"\nFROM meter_readings\nWHERE meter_type = 'production'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, frequency AS \"Frequency (Hz)\"\nFROM meter_readings\nWHERE meter_type = 'production'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "B"
         }
-      ]
+      ],
+      "title": "Voltage & Frequency",
+      "type": "timeseries"
     },
     {
-      "title": "Frequency",
-      "type": "timeseries",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 17 },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "min"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT source_reading_time AS time, frequency AS \"Frequency (Hz)\" FROM meter_readings WHERE meter_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
-          "format": "time_series"
+          "format": "time_series",
+          "rawSql": "SELECT source_reading_time AS time, power_factor AS \"Power Factor\"\nFROM meter_readings\nWHERE meter_type = 'production'\n  AND $__timeFilter(source_reading_time)\nORDER BY source_reading_time",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Power Factor",
+      "type": "timeseries"
     },
     {
-      "title": "Per-Inverter Output",
-      "type": "table",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 25 },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT DISTINCT ON (serial_number) serial_number, watts, max_watts, source_reading_time AS \"Last Report\" FROM inverter_readings ORDER BY serial_number, source_reading_time DESC",
-          "format": "table"
+          "format": "table",
+          "rawSql": "SELECT serial_number,\n       watts,\n       max_watts,\n       ROUND((CASE WHEN max_watts > 0 THEN watts / max_watts * 100 ELSE NULL END)::numeric, 1) AS pct_of_peak,\n       source_reading_time AS last_report\nFROM (\n  SELECT DISTINCT ON (serial_number)\n         serial_number,\n         watts,\n         max_watts,\n         source_reading_time\n  FROM inverter_readings\n  ORDER BY serial_number, source_reading_time DESC\n) latest\nORDER BY watts ASC",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Latest Inverter Snapshot",
+      "type": "table"
     },
     {
-      "title": "Daily Energy (kWh)",
-      "type": "barchart",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 25 },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
-          "rawSql": "SELECT date_trunc('day', source_reading_time) AS time, MAX(wh_lifetime) - MIN(wh_lifetime) AS \"Production (Wh)\", (SELECT MAX(w2.wh_lifetime) - MIN(w2.wh_lifetime) FROM production_overview w2 WHERE w2.source_type = 'total-consumption' AND date_trunc('day', w2.source_reading_time) = date_trunc('day', production_overview.source_reading_time)) AS \"Consumption (Wh)\" FROM production_overview WHERE source_type = 'production' AND $__timeFilter(source_reading_time) GROUP BY date_trunc('day', source_reading_time) ORDER BY time",
-          "format": "time_series"
+          "format": "table",
+          "rawSql": "SELECT ts,\n       severity,\n       event_type,\n       endpoint,\n       duration_seconds,\n       ROUND((production_wh_missed / 1000.0)::numeric, 3) AS production_kwh_missed,\n       ROUND((net_wh_missed / 1000.0)::numeric, 3) AS net_kwh_missed,\n       details\nFROM poller_events\nWHERE $__timeFilter(ts)\nORDER BY ts DESC\nLIMIT 100",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Poller Events",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 34 },
+      "id": 14,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH latest AS (\n  SELECT DISTINCT ON (serial_number)\n         serial_number,\n         source_reading_time\n  FROM inverter_readings\n  ORDER BY serial_number, source_reading_time DESC\n)\nSELECT NOW() AS time,\n       COUNT(*) FILTER (WHERE source_reading_time < NOW() - INTERVAL '15 minutes') AS value\nFROM latest",
+          "refId": "A"
+        }
+      ],
+      "title": "Stale Inverters",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 34 },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "table",
+          "rawSql": "WITH latest AS (\n  SELECT DISTINCT ON (serial_number)\n         serial_number,\n         watts,\n         max_watts,\n         source_reading_time\n  FROM inverter_readings\n  ORDER BY serial_number, source_reading_time DESC\n), fleet AS (\n  SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY watts) AS median_watts\n  FROM latest\n)\nSELECT l.serial_number,\n       l.watts,\n       ROUND(f.median_watts::numeric, 1) AS fleet_median_watts,\n       ROUND((l.watts - f.median_watts)::numeric, 1) AS delta_watts,\n       ROUND(CASE WHEN f.median_watts > 0 THEN ((l.watts - f.median_watts) / f.median_watts * 100)::numeric ELSE NULL END, 1) AS delta_pct,\n       ROUND(EXTRACT(EPOCH FROM (NOW() - l.source_reading_time))::numeric, 0) AS age_seconds,\n       l.source_reading_time AS last_report\nFROM latest l\nCROSS JOIN fleet f\nORDER BY delta_pct ASC, l.watts ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Inverter vs Fleet Median",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 34 },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "min"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH fleet AS (\n  SELECT date_trunc('minute', collected_at) AS time,\n         MIN(watts) AS weakest_watts,\n         percentile_cont(0.5) WITHIN GROUP (ORDER BY watts) AS median_watts\n  FROM inverter_readings\n  WHERE $__timeFilter(collected_at)\n  GROUP BY 1\n)\nSELECT time, weakest_watts AS \"Weakest Inverter\"\nFROM fleet\nORDER BY time",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH fleet AS (\n  SELECT date_trunc('minute', collected_at) AS time,\n         MIN(watts) AS weakest_watts,\n         percentile_cont(0.5) WITHIN GROUP (ORDER BY watts) AS median_watts\n  FROM inverter_readings\n  WHERE $__timeFilter(collected_at)\n  GROUP BY 1\n)\nSELECT time, median_watts AS \"Fleet Median\"\nFROM fleet\nORDER BY time",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+          "format": "time_series",
+          "rawSql": "WITH fleet AS (\n  SELECT date_trunc('minute', collected_at) AS time,\n         MIN(watts) AS weakest_watts,\n         percentile_cont(0.5) WITHIN GROUP (ORDER BY watts) AS median_watts\n  FROM inverter_readings\n  WHERE $__timeFilter(collected_at)\n  GROUP BY 1\n)\nSELECT time, (weakest_watts - median_watts) AS \"Weakest Delta\"\nFROM fleet\nORDER BY time",
+          "refId": "C"
+        }
+      ],
+      "title": "Weakest Inverter Trend",
+      "type": "timeseries"
     }
   ],
-  "templating": {
-    "list": []
-  },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["enphase", "solar", "grafana"],
+  "templating": { "list": [] },
   "time": { "from": "now-24h", "to": "now" },
-  "title": "Enphase Solar",
+  "timepicker": {},
+  "timezone": "",
+  "title": "Enphase Solar Overview",
   "uid": "enphase-solar",
   "version": 1
 }
