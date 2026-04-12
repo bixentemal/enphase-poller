@@ -5,7 +5,7 @@ ENVOY_HOST = os.environ.get("ENVOY_HOST", "envoy.local")
 ENPHASE_TOKEN = os.environ["ENPHASE_TOKEN"]
 DATABASE_URL = os.environ["DATABASE_URL"]
 
-POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "15"))
+POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "30"))
 INVERTER_POLL_INTERVAL = int(os.environ.get("INVERTER_POLL_INTERVAL", "300"))
 METER_REPORT_POLL_INTERVAL = int(os.environ.get("METER_REPORT_POLL_INTERVAL", "60"))
 

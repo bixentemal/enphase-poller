@@ -33,7 +33,7 @@ python -m poller.main
 | `ENVOY_HOST` | `envoy.local` | Envoy hostname or IP |
 | `ENPHASE_TOKEN` | (required) | JWT access token |
 | `DATABASE_URL` | (required) | PostgreSQL connection string |
-| `POLL_INTERVAL` | `15` | Seconds between production/meter polls |
+| `POLL_INTERVAL` | `30` | Seconds between production/meter polls |
 | `METER_REPORT_POLL_INTERVAL` | `60` | Seconds between cumulative counter polls |
 | `INVERTER_POLL_INTERVAL` | `300` | Seconds between per-inverter polls |
 | `ENABLE_CHANNEL_READINGS` | `false` | Store per-phase meter channel data (~19M extra rows/year) |
