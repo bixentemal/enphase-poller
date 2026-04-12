@@ -1,6 +1,5 @@
 import logging
 import signal
-import sys
 import time
 from datetime import datetime, timezone
 
@@ -32,7 +31,12 @@ signal.signal(signal.SIGTERM, _handle_signal)
 
 
 class GapTracker:
-    """Tracks polling gaps using cumulative energy counters from meter_reports."""
+    """Tracks polling gaps for /ivp/meters/reports only.
+
+    Gap detection is only meaningful for endpoints with monotonic cumulative
+    counters. Other endpoint failures are logged as errors but do not
+    constitute energy gaps.
+    """
 
     def __init__(self):
         self.last_cumulatives = {}  # report_type -> {delivered, received}
@@ -70,7 +74,6 @@ class GapTracker:
             prev = self.last_cumulatives.get(report_type)
             if prev and cumulative:
                 delivered_now = cumulative.get("whDlvdCum")
-                received_now = cumulative.get("whRcvdCum")
                 if report_type == "production" and delivered_now and prev.get("delivered"):
                     production_missed = delivered_now - prev["delivered"]
                 if report_type == "net-consumption" and delivered_now and prev.get("delivered"):
@@ -80,6 +83,7 @@ class GapTracker:
             conn,
             event_type="gap_end",
             severity="warning",
+            endpoint="/ivp/meters/reports",
             duration_seconds=duration,
             production_wh_missed=production_missed,
             net_wh_missed=net_missed,
@@ -90,6 +94,21 @@ class GapTracker:
             duration,
             production_missed or 0,
         )
+
+
+def _log_poll_error(conn, endpoint, error):
+    """Log poll failure to both stdout and poller_events."""
+    log.error("Failed to poll %s: %s", endpoint, error)
+    try:
+        storage.insert_poller_event(
+            conn,
+            event_type="error",
+            severity="error",
+            endpoint=endpoint,
+            details=str(error),
+        )
+    except Exception as e:
+        log.error("Failed to write error event: %s", e)
 
 
 def main():
@@ -114,57 +133,51 @@ def main():
     while _running:
         now = time.monotonic()
         collected_at = datetime.now(timezone.utc)
-        any_failure = False
 
         # /production.json — every POLL_INTERVAL
         if now - last_production >= POLL_INTERVAL:
             try:
                 data, latency = client.fetch_production()
-                count = storage.insert_production_overview(conn, data, collected_at)
-                log.info("production_overview: %d rows, %dms", count, latency)
+                inserted = storage.insert_production_overview(conn, data, collected_at)
+                log.info("production_overview: %d inserted, %dms", inserted, latency)
                 last_production = now
             except Exception as e:
-                log.error("Failed to poll /production.json: %s", e)
-                any_failure = True
+                _log_poll_error(conn, "/production.json", e)
 
         # /ivp/meters/readings — every POLL_INTERVAL
         if now - last_meter_readings >= POLL_INTERVAL:
             try:
                 data, latency = client.fetch_meter_readings()
                 mr, mc = storage.insert_meter_readings(conn, data, meter_types, collected_at, ENABLE_CHANNEL_READINGS)
-                log.info("meter_readings: %d rows, channels: %d rows, %dms", mr, mc, latency)
+                log.info("meter_readings: %d inserted, channels: %d inserted, %dms", mr, mc, latency)
                 last_meter_readings = now
             except Exception as e:
-                log.error("Failed to poll /ivp/meters/readings: %s", e)
-                any_failure = True
+                _log_poll_error(conn, "/ivp/meters/readings", e)
 
         # /ivp/meters/reports — every METER_REPORT_POLL_INTERVAL
+        # Gap tracking is scoped to this endpoint only (cumulative counters)
         if now - last_meter_reports >= METER_REPORT_POLL_INTERVAL:
             try:
                 data, latency = client.fetch_meter_reports()
-                count = storage.insert_meter_reports(conn, data, collected_at)
-                log.info("meter_reports: %d rows, %dms", count, latency)
+                inserted = storage.insert_meter_reports(conn, data, collected_at)
+                log.info("meter_reports: %d inserted, %dms", inserted, latency)
                 if gap_tracker.in_gap:
                     gap_tracker.exit_gap(conn, data)
                 gap_tracker.record_success(data)
                 last_meter_reports = now
             except Exception as e:
-                log.error("Failed to poll /ivp/meters/reports: %s", e)
-                any_failure = True
+                _log_poll_error(conn, "/ivp/meters/reports", e)
+                gap_tracker.enter_gap()
 
         # /api/v1/production/inverters — every INVERTER_POLL_INTERVAL
         if now - last_inverters >= INVERTER_POLL_INTERVAL:
             try:
                 data, latency = client.fetch_inverters()
-                count = storage.insert_inverter_readings(conn, data, collected_at)
-                log.info("inverter_readings: %d rows, %dms", count, latency)
+                inserted = storage.insert_inverter_readings(conn, data, collected_at)
+                log.info("inverter_readings: %d inserted, %dms", inserted, latency)
                 last_inverters = now
             except Exception as e:
-                log.error("Failed to poll /api/v1/production/inverters: %s", e)
-                any_failure = True
-
-        if any_failure:
-            gap_tracker.enter_gap()
+                _log_poll_error(conn, "/api/v1/production/inverters", e)
 
         time.sleep(1)
 

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import psycopg2
 
-from poller.config import DATABASE_URL
+from poller.config import DATABASE_URL, POLL_INTERVAL
 
 log = logging.getLogger(__name__)
 
@@ -28,6 +28,27 @@ def _ts(epoch):
     return datetime.fromtimestamp(epoch, tz=timezone.utc)
 
 
+def _ts_or_fallback(epoch, collected_at):
+    """Convert unix epoch to datetime. If epoch is 0/None, truncate collected_at
+    to the poll interval boundary as a synthetic timestamp."""
+    if epoch:
+        return _ts(epoch)
+    # Truncate to POLL_INTERVAL boundary
+    ts_epoch = int(collected_at.timestamp())
+    bucket = ts_epoch - (ts_epoch % POLL_INTERVAL)
+    return datetime.fromtimestamp(bucket, tz=timezone.utc)
+
+
+def _execute_batch(cur, sql, rows):
+    """Execute inserts one by one and return the count of actually inserted rows
+    (not skipped by ON CONFLICT DO NOTHING)."""
+    inserted = 0
+    for row in rows:
+        cur.execute(sql, row)
+        inserted += cur.rowcount
+    return inserted
+
+
 def insert_production_overview(conn, data, collected_at):
     rows = []
     for section_name, items in [("production", data.get("production", [])),
@@ -35,12 +56,10 @@ def insert_production_overview(conn, data, collected_at):
                                  ("storage", data.get("storage", []))]:
         for item in items:
             reading_time = item.get("readingTime")
-            if not reading_time:
-                continue
             source_type = item.get("measurementType") or item.get("type", section_name)
             rows.append((
                 collected_at,
-                _ts(reading_time),
+                _ts_or_fallback(reading_time, collected_at),
                 source_type,
                 item.get("activeCount"),
                 item.get("wNow"),
@@ -83,9 +102,9 @@ def insert_production_overview(conn, data, collected_at):
         ) ON CONFLICT DO NOTHING
     """
     with conn.cursor() as cur:
-        cur.executemany(sql, rows)
+        inserted = _execute_batch(cur, sql, rows)
     conn.commit()
-    return len(rows)
+    return inserted
 
 
 def insert_meter_readings(conn, data, meter_types, collected_at, enable_channels=False):
@@ -157,13 +176,15 @@ def insert_meter_readings(conn, data, meter_types, collected_at, enable_channels
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
     """
+    mr_inserted = 0
+    mc_inserted = 0
     with conn.cursor() as cur:
         if reading_rows:
-            cur.executemany(meter_sql, reading_rows)
+            mr_inserted = _execute_batch(cur, meter_sql, reading_rows)
         if channel_rows:
-            cur.executemany(channel_sql, channel_rows)
+            mc_inserted = _execute_batch(cur, channel_sql, channel_rows)
     conn.commit()
-    return len(reading_rows), len(channel_rows)
+    return mr_inserted, mc_inserted
 
 
 def insert_meter_reports(conn, data, collected_at):
@@ -206,9 +227,9 @@ def insert_meter_reports(conn, data, collected_at):
         ON CONFLICT DO NOTHING
     """
     with conn.cursor() as cur:
-        cur.executemany(sql, rows)
+        inserted = _execute_batch(cur, sql, rows)
     conn.commit()
-    return len(rows)
+    return inserted
 
 
 def insert_inverter_readings(conn, data, collected_at):
@@ -235,9 +256,9 @@ def insert_inverter_readings(conn, data, collected_at):
         ON CONFLICT DO NOTHING
     """
     with conn.cursor() as cur:
-        cur.executemany(sql, rows)
+        inserted = _execute_batch(cur, sql, rows)
     conn.commit()
-    return len(rows)
+    return inserted
 
 
 def insert_poller_event(conn, event_type, severity, endpoint=None,
