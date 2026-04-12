@@ -1,0 +1,92 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
+        "enable": true,
+        "name": "Poller Events",
+        "rawQuery": "SELECT ts AS time, event_type || ': ' || COALESCE(details, '') AS text FROM poller_events WHERE $__timeFilter(ts) ORDER BY ts",
+        "iconColor": "red"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Production vs Consumption",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Production (W)\" FROM production_overview WHERE source_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
+          "format": "time_series"
+        },
+        {
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Consumption (W)\" FROM production_overview WHERE source_type = 'total-consumption' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Net Grid (negative = exporting)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT source_reading_time AS time, w_now AS \"Net (W)\" FROM production_overview WHERE source_type = 'net-consumption' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Voltage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT source_reading_time AS time, voltage AS \"Voltage (V)\" FROM meter_readings WHERE meter_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Frequency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "rawSql": "SELECT source_reading_time AS time, frequency AS \"Frequency (Hz)\" FROM meter_readings WHERE meter_type = 'production' AND $__timeFilter(source_reading_time) ORDER BY source_reading_time",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Per-Inverter Output",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "rawSql": "SELECT DISTINCT ON (serial_number) serial_number, watts, max_watts, source_reading_time AS \"Last Report\" FROM inverter_readings ORDER BY serial_number, source_reading_time DESC",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Daily Energy (kWh)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', source_reading_time) AS time, MAX(wh_lifetime) - MIN(wh_lifetime) AS \"Production (Wh)\", (SELECT MAX(w2.wh_lifetime) - MIN(w2.wh_lifetime) FROM production_overview w2 WHERE w2.source_type = 'total-consumption' AND date_trunc('day', w2.source_reading_time) = date_trunc('day', production_overview.source_reading_time)) AS \"Consumption (Wh)\" FROM production_overview WHERE source_type = 'production' AND $__timeFilter(source_reading_time) GROUP BY date_trunc('day', source_reading_time) ORDER BY time",
+          "format": "time_series"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Enphase Solar",
+  "uid": "enphase-solar",
+  "version": 1
+}
