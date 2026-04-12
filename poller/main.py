@@ -53,10 +53,17 @@ class GapTracker:
                     "received": cumulative.get("whRcvdCum"),
                 }
 
-    def enter_gap(self):
+    def enter_gap(self, conn):
         if not self.in_gap:
             self.gap_start = datetime.now(timezone.utc)
             self.in_gap = True
+            storage.insert_poller_event(
+                conn,
+                event_type="gap_start",
+                severity="warning",
+                endpoint="/ivp/meters/reports",
+                details=f"Gap started at {self.gap_start.isoformat()}",
+            )
 
     def exit_gap(self, conn, reports_data):
         if not self.in_gap:
@@ -167,7 +174,7 @@ def main():
                 last_meter_reports = now
             except Exception as e:
                 _log_poll_error(conn, "/ivp/meters/reports", e)
-                gap_tracker.enter_gap()
+                gap_tracker.enter_gap(conn)
 
         # /api/v1/production/inverters — every INVERTER_POLL_INTERVAL
         if now - last_inverters >= INVERTER_POLL_INTERVAL:
