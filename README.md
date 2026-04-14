@@ -108,6 +108,29 @@ docker build -t enphase-poller .
 docker run --env-file .env enphase-poller
 ```
 
+## Agent Skill
+
+This repo includes an [Agent Skill](https://agentskills.io/) that lets AI coding agents answer natural language questions about your solar data (e.g. "how much did I produce today?", "best production day this month?").
+
+### Install in OpenClaw
+
+Copy the skill directly into your OpenClaw skills directory (no need to clone the full repo):
+
+```bash
+mkdir -p ~/.openclaw/skills/enphase-poller
+curl -sL https://raw.githubusercontent.com/bixentemal/enphase-poller/main/.claude/skills/enphase-poller/SKILL.md \
+  -o ~/.openclaw/skills/enphase-poller/SKILL.md
+```
+
+Then set the required environment variables:
+
+```bash
+export ENPHASE_POLLER_REST_API=http://<poller-ip>:8000
+export ENPHASE_POLLER_REST_API_KEY=<your-api-key>
+```
+
+The skill is also compatible with Claude Code, Cursor, GitHub Copilot, Gemini CLI, and [other agents supporting the Agent Skills format](https://agentskills.io/).
+
 ## Database Schema
 
 The schema is automatically created on startup. See [schema.sql](schema.sql) for the full definition.
