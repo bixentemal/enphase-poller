@@ -280,7 +280,7 @@
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "${DS_POSTGRESQL}" },
           "format": "time_series",
-          "rawSql": "SELECT source_reading_time AS time, wh_today / 1000.0 AS value\nFROM production_overview\nWHERE source_type = 'production'\nORDER BY source_reading_time DESC\nLIMIT 1",
+          "rawSql": "SELECT NOW() AS time,\n  ROUND(((MAX(act_energy_delivered) - MIN(act_energy_delivered)) / 1000.0)::numeric, 1) AS value\nFROM meter_readings\nWHERE meter_type = 'production'\n  AND source_reading_time >= date_trunc('day', NOW())",
           "refId": "A"
         }
       ],
