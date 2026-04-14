@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: enphase
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: enphase
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U enphase"]
+      interval: 2s
+      retries: 10
+
+  poller:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://enphase:changeme@db:5432/enphase
+      ENVOY_HOST: 192.168.1.9
+      ENPHASE_TOKEN: ${ENPHASE_LOCAL_API_ENDPOINT_TOKEN}
+      API_KEY: test-secret-key
+      API_PORT: "8000"
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
