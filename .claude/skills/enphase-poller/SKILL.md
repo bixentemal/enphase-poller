@@ -1,7 +1,10 @@
 ---
 name: enphase-poller
-description: Query solar energy data from a local Enphase Poller REST API using natural language
-user_invocable: true
+description: Query solar energy data from a local Enphase Poller REST API using natural language. Use when the user asks about solar production, consumption, grid usage, energy history, or poller health.
+compatibility: Requires network access to a running Enphase Poller REST API on the local network
+metadata:
+  author: bixentemal
+  version: "1.0"
 ---
 
 # Enphase Poller — Natural Language Solar Query
