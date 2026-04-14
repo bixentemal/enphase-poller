@@ -2,6 +2,8 @@
 
 A simple Python poller that collects solar production, consumption, and power quality data from a local Enphase Envoy (IQ Gateway) and stores it in PostgreSQL for Grafana dashboards. Includes a REST API for querying metrics.
 
+![Grafana Dashboard](img/grafana1.png)
+
 ## Features
 
 - Polls 4 Envoy local API endpoints at different cadences (30s to 5min)
