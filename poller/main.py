@@ -1,10 +1,15 @@
 import logging
 import signal
+import threading
 import time
 from datetime import datetime, timezone
 
+import uvicorn
+
 from poller import client, storage
+from poller.api import app
 from poller.config import (
+    API_PORT,
     ENABLE_CHANNEL_READINGS,
     INVERTER_POLL_INTERVAL,
     METER_REPORT_POLL_INTERVAL,
@@ -118,7 +123,7 @@ def _log_poll_error(conn, endpoint, error):
         log.error("Failed to write error event: %s", e)
 
 
-def main():
+def _poll_loop():
     conn = storage.get_connection()
     storage.bootstrap_schema(conn)
 
@@ -190,7 +195,14 @@ def main():
 
     storage.insert_poller_event(conn, "shutdown", "info", details="Poller stopped")
     conn.close()
-    log.info("Shutdown complete")
+    log.info("Poll loop shutdown complete")
+
+
+def main():
+    poller_thread = threading.Thread(target=_poll_loop, daemon=True)
+    poller_thread.start()
+    log.info("API server starting on port %d", API_PORT)
+    uvicorn.run(app, host="0.0.0.0", port=API_PORT, log_level="info")
 
 
 if __name__ == "__main__":

@@ -10,5 +10,7 @@ INVERTER_POLL_INTERVAL = int(os.environ.get("INVERTER_POLL_INTERVAL", "300"))
 METER_REPORT_POLL_INTERVAL = int(os.environ.get("METER_REPORT_POLL_INTERVAL", "60"))
 
 ENABLE_CHANNEL_READINGS = os.environ.get("ENABLE_CHANNEL_READINGS", "false").lower() in ("true", "1", "yes")
+API_PORT = int(os.environ.get("API_PORT", "8000"))
+API_KEY = os.environ.get("API_KEY")
 
 ENVOY_BASE_URL = f"https://{ENVOY_HOST}"

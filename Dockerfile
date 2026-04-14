@@ -7,4 +7,5 @@ COPY schema.sql /app/
 COPY poller/ /app/poller/
 
 WORKDIR /app
+EXPOSE 8000
 CMD ["python", "-m", "poller.main"]
